@@ -67,3 +67,9 @@ class ChatSessionResponse(BaseModel):
     course_code: str
     title: str
     created_at: datetime
+    
+class ClassificationResponse(BaseModel):
+    suggested_course: str
+    suggested_type: str
+    confidence: float
+    rationale: str

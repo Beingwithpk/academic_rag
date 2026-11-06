@@ -256,30 +256,52 @@
     </div>
   </div>
 
-  <!-- 3. Upload Material Modal (Faculty & Admin) -->
+  <!-- 3. Upload Material Modal (With AI Auto-Sort) -->
   <div id="uploadModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-md w-full space-y-4">
-      <h3 class="font-semibold text-lg">Upload Subject Material</h3>
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-lg">Upload Subject Material</h3>
+        <span class="text-[10px] font-mono uppercase bg-indigo-900/60 text-indigo-300 border border-indigo-700 px-2 py-0.5 rounded">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>AI Auto-Sorter
+        </span>
+      </div>
+
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Select PDF File(s)</label>
+        <input type="file" id="uploadFileInput" accept=".pdf" multiple onchange="triggerAutoSort(this)"
+               class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600">
+      </div>
+
+      <!-- AI Analysis Status Card -->
+      <div id="aiSuggestionBox" class="hidden p-3 bg-indigo-950/40 border border-indigo-700/50 rounded-lg text-xs space-y-1">
+        <div class="flex items-center justify-between font-semibold">
+          <span class="text-indigo-300 flex items-center space-x-1">
+            <i class="fa-solid fa-robot"></i> <span>AI Prediction:</span>
+          </span>
+          <span id="aiConfidenceBadge" class="px-2 py-0.2 rounded text-[10px] uppercase font-bold bg-emerald-500/20 text-emerald-300">95% Match</span>
+        </div>
+        <p id="aiRationale" class="text-slate-300 text-[11px]"></p>
+        <p class="text-[10px] text-slate-400 italic">Values pre-filled below. You can change them before uploading.</p>
+      </div>
+
       <div>
         <label class="block text-xs uppercase text-slate-400 mb-1">Target Subject</label>
-        <input type="text" id="uploadCourseCode" readonly class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm font-mono text-indigo-400">
+        <select id="uploadCourseCode" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm font-mono text-slate-200 focus:border-indigo-500 focus:outline-none"></select>
       </div>
+
       <div>
         <label class="block text-xs uppercase text-slate-400 mb-1">Category</label>
-        <select id="uploadDocType" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+        <select id="uploadDocType" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
           <option value="notes">Lecture Notes</option>
           <option value="pyq">Question Paper / PYQ</option>
           <option value="syllabus">Syllabus</option>
           <option value="assignment">Assignment Sheet</option>
         </select>
       </div>
-      <div>
-        <label class="block text-xs uppercase text-slate-400 mb-1">Select PDF File</label>
-        <input type="file" id="uploadFileInput" accept=".pdf" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600">
-      </div>
+
       <div class="flex justify-end space-x-2 pt-2">
-        <button onclick="toggleModal('uploadModal', false)" class="px-3 py-1.5 rounded bg-slate-700 text-xs">Cancel</button>
-        <button id="uploadSubmitBtn" onclick="submitUpload()" class="px-4 py-1.5 rounded bg-indigo-600 text-xs font-medium">Upload & Index</button>
+        <button onclick="toggleModal('uploadModal', false)" class="px-3 py-1.5 rounded bg-slate-700 text-xs hover:bg-slate-600 transition">Cancel</button>
+        <button id="uploadSubmitBtn" onclick="submitUpload()" class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-xs font-medium transition">Upload & Index</button>
       </div>
       <div id="uploadProgress" class="text-xs text-indigo-400 text-center hidden">Generating embeddings and indexing in pgvector...</div>
     </div>

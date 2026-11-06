@@ -107,6 +107,7 @@ def init_tables():
                 CREATE INDEX IF NOT EXISTS idx_chunks_course_type 
                 ON document_chunks (course_id, doc_type);
             """)
+            cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_url TEXT;")
 
             # 5. Chat Sessions & Messages
             cur.execute("""

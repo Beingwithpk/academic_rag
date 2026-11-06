@@ -336,14 +336,93 @@ async function deleteSubject(code) {
 }
 
 // --- Upload Material Modal ---
-function openUploadModal(courseCode) {
-  document.getElementById("uploadCourseCode").value = courseCode;
+// 1. Populate the upload dropdown dynamically with all courses
+async function populateCourseDropdown(selectedCode = null) {
+  const select = document.getElementById("uploadCourseCode");
+  select.innerHTML = "";
+  try {
+    const res = await fetch("/api/courses/all");
+    const courses = await res.json();
+    courses.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.innerText = `[Sem ${c.semester}] ${c.code} - ${c.title}`;
+      if (selectedCode && c.code === selectedCode) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.error("Failed to load course options", e);
+  }
+}
+
+// 2. Open modal with pre-selection if triggered from a specific course card
+async function openUploadModal(courseCode = null) {
+  await populateCourseDropdown(courseCode);
+  document.getElementById("aiSuggestionBox").classList.add("hidden");
+  document.getElementById("uploadFileInput").value = "";
   toggleModal('uploadModal', true);
 }
 
+// 3. Triggered as soon as the user selects a file (AI Auto-Sorter)
+// AI Auto-Sort (Inspects the first file of the selection)
+async function triggerAutoSort(input) {
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
+  const fileCount = input.files.length;
+  const token = localStorage.getItem("token");
+
+  const suggestionBox = document.getElementById("aiSuggestionBox");
+  const rationaleEl = document.getElementById("aiRationale");
+  const confidenceBadge = document.getElementById("aiConfidenceBadge");
+
+  suggestionBox.classList.remove("hidden");
+  rationaleEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Analyzing ${file.name}${fileCount > 1 ? ` (and ${fileCount - 1} other files)` : ''}...`;
+  confidenceBadge.className = "px-2 py-0.2 rounded text-[10px] uppercase font-bold bg-slate-700 text-slate-300";
+  confidenceBadge.innerText = "Analyzing...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("/api/notes/classify", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+
+    if (!res.ok) throw new Error("Classification request failed.");
+    const data = await res.json();
+
+    const courseSelect = document.getElementById("uploadCourseCode");
+    const docTypeSelect = document.getElementById("uploadDocType");
+
+    courseSelect.value = data.suggested_course;
+    docTypeSelect.value = data.suggested_type;
+
+    const confidencePct = Math.round(data.confidence * 100);
+    confidenceBadge.innerText = `${confidencePct}% Confidence`;
+    confidenceBadge.className = confidencePct >= 75
+      ? "px-2 py-0.2 rounded text-[10px] uppercase font-bold bg-emerald-500/20 text-emerald-300"
+      : "px-2 py-0.2 rounded text-[10px] uppercase font-bold bg-amber-500/20 text-amber-300";
+
+    rationaleEl.innerText = `${data.rationale} Matched batch to ${data.suggested_course} (${data.suggested_type.toUpperCase()}).`;
+
+  } catch (err) {
+    rationaleEl.innerText = "Automatic classification unavailable. Please select course and category manually.";
+    confidenceBadge.innerText = "Manual";
+    confidenceBadge.className = "px-2 py-0.2 rounded text-[10px] uppercase font-bold bg-slate-700 text-slate-300";
+  }
+}
+
+// Multi-file Submit Function
 async function submitUpload() {
   const fileInput = document.getElementById("uploadFileInput");
-  if (!fileInput.files[0]) return alert("Please select a PDF file.");
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert("Please select at least one PDF file.");
+    return;
+  }
 
   const course_code = document.getElementById("uploadCourseCode").value;
   const doc_type = document.getElementById("uploadDocType").value;
@@ -352,10 +431,16 @@ async function submitUpload() {
   const formData = new FormData();
   formData.append("course_code", course_code);
   formData.append("doc_type", doc_type);
-  formData.append("file", fileInput.files[0]);
+
+  // Append each selected file under the key 'files'
+  for (let i = 0; i < fileInput.files.length; i++) {
+    formData.append("files", fileInput.files[i]);
+  }
 
   const progress = document.getElementById("uploadProgress");
   const submitBtn = document.getElementById("uploadSubmitBtn");
+  
+  progress.innerText = `Extracting & generating vector embeddings for ${fileInput.files.length} file(s)...`;
   progress.classList.remove("hidden");
   submitBtn.disabled = true;
 
@@ -367,7 +452,18 @@ async function submitUpload() {
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.detail || "Upload failed");
-    alert(`Success! Indexed ${result.data.total_chunks} chunks into ${course_code}.`);
+
+    let totalChunks = 0;
+    if (result.results) {
+      totalChunks = result.results.reduce((acc, r) => acc + (r.total_chunks || 0), 0);
+    }
+
+    let alertMsg = `Success! Processed ${result.uploaded_count} file(s) with ${totalChunks} total chunks indexed into ${course_code}.`;
+    if (result.errors && result.errors.length > 0) {
+      alertMsg += `\nWarnings:\n${result.errors.join('\n')}`;
+    }
+
+    alert(alertMsg);
     toggleModal('uploadModal', false);
     fileInput.value = "";
     if (activeCourseCode) loadCourseDocuments(activeCourseCode);

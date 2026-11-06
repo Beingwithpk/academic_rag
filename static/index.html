@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic Portal & Admin Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Navbar -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="backToDashboard()">
+        <i class="fa-solid fa-graduation-cap text-indigo-400 text-2xl"></i>
+        <span class="text-xl font-bold tracking-tight">Academic<span class="text-indigo-400">Portal</span></span>
+      </div>
+      <div id="navUserSection" class="hidden items-center space-x-4">
+        <span id="navUserInfo" class="text-sm text-slate-300"></span>
+        <span id="navRoleBadge" class="text-xs uppercase px-2.5 py-0.5 rounded-full font-semibold"></span>
+        <button id="adminPanelNavBtn" onclick="openAdminPanel()" class="hidden text-xs bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded transition">Admin Console</button>
+        <button onclick="logout()" class="text-xs bg-slate-700 hover:bg-rose-600 px-3 py-1.5 rounded transition">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col">
+
+    <!-- 1. Authentication View -->
+    <section id="authView" class="max-w-md w-full mx-auto my-auto bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-xl">
+      <div class="flex border-b border-slate-700 mb-6">
+        <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-indigo-400">Login</button>
+        <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-400">Sign Up</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+        <div id="fullNameGroup" class="hidden">
+          <label class="block text-xs uppercase text-slate-400 mb-1">Full Name</label>
+          <input type="text" id="authFullName" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase text-slate-400 mb-1">Email Address</label>
+          <input type="email" id="authEmail" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase text-slate-400 mb-1">Password</label>
+          <input type="password" id="authPassword" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <div id="roleGroup" class="hidden">
+          <label class="block text-xs uppercase text-slate-400 mb-1">Account Role</label>
+          <select id="authRole" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+            <option value="student">Student</option>
+            <option value="faculty">Faculty</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 font-medium py-2 rounded text-sm transition">Sign In</button>
+        <p id="authError" class="text-rose-400 text-xs text-center hidden"></p>
+      </form>
+    </section>
+
+    <!-- 2. Main Dashboard View -->
+    <section id="dashboardView" class="hidden flex-1 space-y-6">
+      
+      <!-- Top Action Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div>
+          <h1 class="text-xl font-semibold">Engineering Curriculum & Materials</h1>
+          <p class="text-xs text-slate-400">All semester courses are open to students. View notes, download PYQs, or launch the AI workspace.</p>
+        </div>
+        <div class="flex items-center space-x-2" id="semesterFilterContainer">
+          <button onclick="filterSemester(1)" id="semBtn-1" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white">Sem 1</button>
+          <button onclick="filterSemester(2)" id="semBtn-2" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:bg-slate-600">Sem 2</button>
+          <button onclick="filterSemester(3)" id="semBtn-3" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:bg-slate-600">Sem 3</button>
+          <button onclick="filterSemester(4)" id="semBtn-4" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:bg-slate-600">Sem 4</button>
+        </div>
+      </div>
+
+      <!-- Course Cards Grid -->
+      <div id="coursesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- 3. Admin Console View -->
+    <section id="adminView" class="hidden flex-1 space-y-6">
+      <div class="flex items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div>
+          <h2 class="text-xl font-bold flex items-center space-x-2">
+            <i class="fa-solid fa-shield-halved text-amber-400"></i>
+            <span>Administrator Control Center</span>
+          </h2>
+          <p class="text-xs text-slate-400">Manage curriculum subjects across semesters and inspect registered faculty members.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="toggleModal('addSubjectModal', true)" class="bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold px-4 py-2 rounded-lg transition">
+            <i class="fa-solid fa-plus mr-1"></i> Add New Subject
+          </button>
+          <button onclick="backToDashboard()" class="bg-slate-700 hover:bg-slate-600 text-xs px-3 py-2 rounded-lg transition">Exit Console</button>
+        </div>
+      </div>
+
+      <!-- Admin Tabs -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: Subject Directory -->
+        <div class="lg:col-span-2 bg-slate-800 p-5 rounded-xl border border-slate-700">
+          <h3 class="font-semibold text-sm uppercase text-slate-300 mb-3">All Curriculum Subjects</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900 text-slate-400 uppercase">
+                <tr>
+                  <th class="p-2.5">Code</th>
+                  <th class="p-2.5">Title</th>
+                  <th class="p-2.5">Sem</th>
+                  <th class="p-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminSubjectsTable" class="divide-y divide-slate-700"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right Col: Faculty Roster -->
+        <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+          <h3 class="font-semibold text-sm uppercase text-slate-300 mb-3">Registered Faculty Roster</h3>
+          <div id="adminFacultyList" class="space-y-2 max-h-[500px] overflow-y-auto pr-1"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. Chat & Study Workspace -->
+    <section id="chatView" class="hidden flex-1 flex flex-col md:flex-row gap-4 h-[calc(100vh-8rem)]">
+      
+      <!-- Sidebar -->
+      <aside class="w-full md:w-80 bg-slate-800 border border-slate-700 rounded-xl flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+          <div>
+            <h2 id="activeCourseTitle" class="font-bold text-sm tracking-wide">Subject</h2>
+            <button onclick="backToDashboard()" class="text-xs text-indigo-400 hover:underline">← All Subjects</button>
+          </div>
+          <button onclick="startNewSession()" title="New Chat" class="p-1.5 bg-indigo-600 hover:bg-indigo-500 rounded text-xs flex items-center space-x-1">
+            <i class="fa-solid fa-plus"></i> <span>New</span>
+          </button>
+        </div>
+
+        <!-- Materials List -->
+        <div class="p-3 border-b border-slate-700 bg-slate-900/40">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-semibold text-slate-400">Course Materials</span>
+            <span id="docCountBadge" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-indigo-400">0 files</span>
+          </div>
+          <div id="courseDocsList" class="max-h-48 overflow-y-auto text-xs space-y-1.5 pr-1"></div>
+        </div>
+
+        <!-- Session List -->
+        <div class="p-3 text-xs uppercase font-semibold text-slate-400">Chat History</div>
+        <div id="sessionsList" class="flex-1 overflow-y-auto px-2 space-y-1"></div>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <div class="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col overflow-hidden">
+        
+        <div class="p-3 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center space-x-1.5 cursor-pointer">
+              <input type="radio" name="chatMode" value="ask" checked class="text-indigo-600 focus:ring-0">
+              <span class="font-medium text-slate-200">Study / Explain Notes</span>
+            </label>
+            <label class="flex items-center space-x-1.5 cursor-pointer">
+              <input type="radio" name="chatMode" value="generate_exam" class="text-indigo-600 focus:ring-0">
+              <span class="font-medium text-slate-200">Generate Exam Paper</span>
+            </label>
+          </div>
+          <span class="text-slate-400 font-mono text-[11px]">Grounded: pgvector</span>
+        </div>
+
+        <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+        <div class="p-3 border-t border-slate-700 bg-slate-900/40">
+          <form id="chatForm" onsubmit="sendChatMessage(event)" class="flex gap-2">
+            <input type="text" id="chatInput" placeholder="Ask a question or request step-by-step solutions..." required
+                   class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none">
+            <button type="submit" id="chatSendBtn" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-lg text-sm font-medium transition flex items-center space-x-2">
+              <span>Send</span>
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modals -->
+
+  <!-- 1. Add Subject Modal (Admin) -->
+  <div id="addSubjectModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-sm w-full space-y-4">
+      <h3 class="font-semibold text-lg">Add Subject to Curriculum</h3>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Subject Code</label>
+        <input type="text" id="newSubjectCode" placeholder="e.g. CS2012" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm uppercase font-mono">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Subject Title</label>
+        <input type="text" id="newSubjectTitle" placeholder="e.g. Cloud Security" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Assigned Semester</label>
+        <select id="newSubjectSem" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+        </select>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="toggleModal('addSubjectModal', false)" class="px-3 py-1.5 rounded bg-slate-700 text-xs">Cancel</button>
+        <button onclick="submitAddSubject()" class="px-4 py-1.5 rounded bg-indigo-600 text-xs font-medium">Add Subject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Edit Subject Modal (Admin) -->
+  <div id="editSubjectModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-sm w-full space-y-4">
+      <h3 class="font-semibold text-lg">Edit Subject Details</h3>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Subject Code</label>
+        <input type="text" id="editSubjectCode" readonly class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm uppercase font-mono text-indigo-400">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Subject Title</label>
+        <input type="text" id="editSubjectTitle" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Assigned Semester</label>
+        <select id="editSubjectSem" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+        </select>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="toggleModal('editSubjectModal', false)" class="px-3 py-1.5 rounded bg-slate-700 text-xs">Cancel</button>
+        <button onclick="submitEditSubject()" class="px-4 py-1.5 rounded bg-indigo-600 text-xs font-medium">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Upload Material Modal (Faculty & Admin) -->
+  <div id="uploadModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl max-w-md w-full space-y-4">
+      <h3 class="font-semibold text-lg">Upload Subject Material</h3>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Target Subject</label>
+        <input type="text" id="uploadCourseCode" readonly class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm font-mono text-indigo-400">
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Category</label>
+        <select id="uploadDocType" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm">
+          <option value="notes">Lecture Notes</option>
+          <option value="pyq">Question Paper / PYQ</option>
+          <option value="syllabus">Syllabus</option>
+          <option value="assignment">Assignment Sheet</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs uppercase text-slate-400 mb-1">Select PDF File</label>
+        <input type="file" id="uploadFileInput" accept=".pdf" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600">
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="toggleModal('uploadModal', false)" class="px-3 py-1.5 rounded bg-slate-700 text-xs">Cancel</button>
+        <button id="uploadSubmitBtn" onclick="submitUpload()" class="px-4 py-1.5 rounded bg-indigo-600 text-xs font-medium">Upload & Index</button>
+      </div>
+      <div id="uploadProgress" class="text-xs text-indigo-400 text-center hidden">Generating embeddings and indexing in pgvector...</div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
